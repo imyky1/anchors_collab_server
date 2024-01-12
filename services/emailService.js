@@ -14,7 +14,7 @@ const emailServiceForInfluencerActivation = async (
   if (process.env.DEVELOPEMENT_ENVIRONMENT === "local") {
     // to = "singhyuvraj0506@gmail.com";
     console.log("Stopping Activation Email");
-    // return true;
+    return true;
   }
 
   let client = new zeptomail.SendMailClient({ url, token });

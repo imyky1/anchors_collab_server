@@ -84,17 +84,6 @@ router.post("/saveinfo", fetchuser, async (req, res) => {
         referal_code,
       });
 
-      let user = await Influencer.findById(req.user.id);
-      let rank = await wNum();
-
-      // welcome email ----------------------
-      emailServiceForInfluencerActivation(
-        user?.email,
-        user?.name,
-        InfluencerActivationTemplatesonEventSide[0],
-        `https://collab.anchors.in?refer=${user?.referal_code}`,
-        rank
-      );
     } else {
       // Update other details without referral code
       await Influencer.findByIdAndUpdate(founduser1?._id, req.body);
@@ -110,13 +99,13 @@ router.post("/saveinfo", fetchuser, async (req, res) => {
       });
     }
 
-    // if(req.body.is_verified){
-    //   let user = await Influencer.findById(req.user.id)
-    //   let rank = await wNum()
+    if(req.body.is_verified){
+      let user = await Influencer.findById(req.user.id)
+      let rank = await wNum()
 
-    //   // welcome email ----------------------
-    //   emailServiceForInfluencerActivation(user?.email,user?.name,InfluencerActivationTemplatesonEventSide[0],`https://collab.anchors.in?refer=${user?.referal_code}`,rank)
-    // }
+      // welcome email ----------------------
+      emailServiceForInfluencerActivation(user?.email,user?.name,InfluencerActivationTemplatesonEventSide[0],`https://collab.anchors.in?refer=${user?.referal_code}`,rank)
+    }
 
     success = true;
     return res.json({ success });
@@ -219,7 +208,7 @@ router.get("/getLoginUserData", fetchuser, async (req, res) => {
     return res.json({
       success,
       data: user,
-      firstTime: user?.mobile === "" || !user?.mobile,
+      firstTime: !user?.is_verified,
     });
   } catch (e) {
     return res
