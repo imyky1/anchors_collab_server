@@ -10,16 +10,13 @@ const Influencerschema = new mongoose.Schema({
         required: true
     },
     profile:{
-        type:String,
-        default:''
+        type:String
     },
     mobile:{
-        type:String,
-        default:''
+        type:String
     },
     linkedinLink:{
-        type:String,
-        default:''
+        type:String
     },
     referal_code:{
         type:String

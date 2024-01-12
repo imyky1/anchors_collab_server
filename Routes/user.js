@@ -6,25 +6,28 @@ const router = express.Router();
 const Influencer = require("../models/Inluencer");
 const jwt = require("jsonwebtoken");
 const fetchuser = require("../middleware/fetchuser");
-const { emailServiceForInfluencerActivation } = require("../services/emailService");
-const { InfluencerActivationTemplatesonEventSide } = require("../services/Templates/EmailTemplates");
+const {
+  emailServiceForInfluencerActivation,
+} = require("../services/emailService");
+const {
+  InfluencerActivationTemplatesonEventSide,
+} = require("../services/Templates/EmailTemplates");
+const informLarkBot = require("../services/LarkService");
 
-
-router.get("/getAll",async(req,res)=>{
+router.get("/getAll", async (req, res) => {
   let success = false;
-  try{
-    const all_users = await Influencer.find({}).select(["name","refered_to"]);
-    if(all_users){
-      success = true
-      return res.status(200).json({success,all_users})
+  try {
+    const all_users = await Influencer.find({}).select(["name", "refered_to"]);
+    if (all_users) {
+      success = true;
+      return res.status(200).json({ success, all_users });
+    } else {
+      return res.status(404).json("cannot fetch the users data");
     }
-    else{
-      return res.status(404).json("cannot fetch the users data")
-    }
-  }catch(e){
-    return res.status(422).json({success,error:e.message})
+  } catch (e) {
+    return res.status(422).json({ success, error: e.message });
   }
-})
+});
 
 router.post("/saveinfo", fetchuser, async (req, res) => {
   let success = false;
@@ -55,7 +58,9 @@ router.post("/saveinfo", fetchuser, async (req, res) => {
 
     // Check referral code (unchanged)
     if (req.body.refered_code) {
-      refered = await Influencer.findOne({ referal_code: req.body.refered_code });
+      refered = await Influencer.findOne({
+        referal_code: req.body.refered_code,
+      });
       if (!refered) {
         return res.status(422).json({ success, error: "Invalid referal code" });
       }
@@ -78,6 +83,18 @@ router.post("/saveinfo", fetchuser, async (req, res) => {
         ...req.body,
         referal_code,
       });
+
+      let user = await Influencer.findById(req.user.id);
+      let rank = await wNum();
+
+      // welcome email ----------------------
+      emailServiceForInfluencerActivation(
+        user?.email,
+        user?.name,
+        InfluencerActivationTemplatesonEventSide[0],
+        `https://collab.anchors.in?refer=${user?.referal_code}`,
+        rank
+      );
     } else {
       // Update other details without referral code
       await Influencer.findByIdAndUpdate(founduser1?._id, req.body);
@@ -93,13 +110,13 @@ router.post("/saveinfo", fetchuser, async (req, res) => {
       });
     }
 
-    if(req.body.is_verified){
-      let user = await Influencer.findById(req.user.id)
-      let rank = await wNum()
+    // if(req.body.is_verified){
+    //   let user = await Influencer.findById(req.user.id)
+    //   let rank = await wNum()
 
-      // welcome email ----------------------
-      emailServiceForInfluencerActivation(user?.email,user?.name,InfluencerActivationTemplatesonEventSide[0],`https://collab.anchors.in?refer=${user?.referal_code}`,rank)
-    }
+    //   // welcome email ----------------------
+    //   emailServiceForInfluencerActivation(user?.email,user?.name,InfluencerActivationTemplatesonEventSide[0],`https://collab.anchors.in?refer=${user?.referal_code}`,rank)
+    // }
 
     success = true;
     return res.json({ success });
@@ -136,7 +153,7 @@ router.post("/loginUser", async (req, res) => {
         const jwtToken = jwt.sign(data, process.env.JWT_SECRET);
 
         success = true;
-        return res.json({ success, token: jwtToken , type:"existing" });
+        return res.json({ success, token: jwtToken, type: "existing" });
       }
 
       return res.status(422).json({ success, error: "Influencer not allowed" });
@@ -157,6 +174,15 @@ router.post("/loginUser", async (req, res) => {
       },
     };
 
+    let allUser = await Influencer.find({status:1})
+
+    await informLarkBot(
+      process.env.LARK_WAITLIST_NOTIFY,
+      `Great News! Collab Lead Generated`,
+      [`Name - ${user.name}`, `Time - ${new Date(user?.createdAt)}`, `User Number : ${allUser?.length}`]
+      
+    );
+
     const jwtToken = jwt.sign(data, process.env.JWT_SECRET);
     success = true;
 
@@ -170,19 +196,35 @@ router.post("/loginUser", async (req, res) => {
 router.get("/getLoginUserData", fetchuser, async (req, res) => {
   let success = false;
   try {
-    let user = await Influencer.findById(req.user.id).select(["name","email","linkedinProfile","profile","status","is_verified","referal_code"])
+    let user = await Influencer.findById(req.user.id).select([
+      "name",
+      "email",
+      "linkedinProfile",
+      "profile",
+      "mobile",
+      "status",
+      "is_verified",
+      "referal_code",
+    ]);
 
     // exisiting user --------------------
     if (!user || user.status !== 1) {
-      return res.status(422).json({ success, logout:true, error: "Not Allowed" });
+      return res
+        .status(422)
+        .json({ success, logout: true, error: "Not Allowed" });
     }
 
     success = true;
 
-    return res.json({ success, data:user, firstTime:!user?.is_verified});
-
+    return res.json({
+      success,
+      data: user,
+      firstTime: user?.mobile === "" || !user?.mobile,
+    });
   } catch (e) {
-    return res.status(422).json({ success, error: "error in fetching user data" });
+    return res
+      .status(422)
+      .json({ success, error: "error in fetching user data" });
   }
 });
 
