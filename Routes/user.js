@@ -71,7 +71,7 @@ router.post("/saveinfo", fetchuser, async (req, res) => {
     if (req.body.mobile) {
       // Generate referral code only if mobile is present
       let referal_code = req.body.mobile.slice(-4);
-      let foundCode = await Influencer.findOne({ referal_code });
+      let foundCode = await Influencer.findOne({ referal_code , _id:{$ne:req.user.id} });
       while (foundCode) {
         referal_code = parseInt(foundCode.referal_code, 10) + 1;
         referal_code = referal_code.toString().slice(-4);
@@ -110,7 +110,7 @@ router.post("/saveinfo", fetchuser, async (req, res) => {
     success = true;
     return res.json({ success });
   } catch (e) {
-    return res.status(422).json({ success, error: "error saving user info" });
+    return res.status(422).json({ success, error: "Error saving user info" });
   }
 });
 
