@@ -68,13 +68,18 @@ router.post("/saveinfo", fetchuser, async (req, res) => {
 
     // Conditional referral code generation and update
 
-    if (req.body.mobile) {
+    if (req.body.mobile && !founduser1.referal_code) {
       // Generate referral code only if mobile is present
       let referal_code = req.body.mobile.slice(-4);
       let foundCode = await Influencer.findOne({ referal_code , _id:{$ne:req.user.id} });
       while (foundCode) {
         referal_code = parseInt(foundCode.referal_code, 10) + 1;
-        referal_code = referal_code.toString().slice(-4);
+        console.log(referal_code)
+        referal_code = referal_code.toString();
+        while(4-referal_code.length){
+          referal_code = "0" + referal_code
+        }
+        console.log(referal_code)
         foundCode = await Influencer.findOne({ referal_code });
       }
 
@@ -90,7 +95,7 @@ router.post("/saveinfo", fetchuser, async (req, res) => {
     }
 
     // Update referred user information (unchanged)
-    if (refered) {
+    if (refered && !founduser1.refered_by) {
       await Influencer.findByIdAndUpdate(refered._id, {
         $push: { refered_to: founduser1?._id },
       });
@@ -110,6 +115,7 @@ router.post("/saveinfo", fetchuser, async (req, res) => {
     success = true;
     return res.json({ success });
   } catch (e) {
+    console.log(e)
     return res.status(422).json({ success, error: "Error saving user info" });
   }
 });
@@ -194,6 +200,7 @@ router.get("/getLoginUserData", fetchuser, async (req, res) => {
       "status",
       "is_verified",
       "referal_code",
+      "linkedinLink"
     ]);
 
     // exisiting user --------------------
