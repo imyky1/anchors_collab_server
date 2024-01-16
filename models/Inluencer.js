@@ -19,7 +19,8 @@ const Influencerschema = new mongoose.Schema({
         type:String
     },
     referal_code:{
-        type:String
+        type:String,
+        unique : true
     },
     is_verified:{
         type:Boolean,
