@@ -14,13 +14,37 @@ const {
 } = require("../services/Templates/EmailTemplates");
 const informLarkBot = require("../services/LarkService");
 
-router.get("/getAll", async (req, res) => {
+router.get("/getAll",fetchuser, async (req, res) => {
   let success = false;
   try {
-    const all_users = await Influencer.find({}).select(["name", "refered_to"]);
+    const all_users = await Influencer.find({"refered_to.0": { $exists: true }}).select(["name", "refered_to"]);
     if (all_users) {
+      const list = all_users?.map((item) => ({
+        id:item?._id,
+        name: item?.name,
+        count: item.refered_to?.length,
+      }));
+
+      const sortedLeaderboard = [...list].sort((a, b) => b.count - a.count);
+      // Finding index of currentUser in the sorted leaderboard
+      const currentUserIndex = sortedLeaderboard.findIndex(item => item.id.toString() === req.user.id);
+      let userIndex;
+
+      if(currentUserIndex === -1){
+        const all_users1 = await Influencer.find().select(["name", "refered_to"]);
+        const list2 = all_users1?.map((item) => ({
+          id:item?._id,
+          name: item?.name,
+          count: item.refered_to?.length,
+        }));
+  
+        const sortedLeaderboard2 = [...list2].sort((a, b) => b.count - a.count);
+
+        userIndex = sortedLeaderboard2.findIndex(item => item.id.toString() === req.user.id)+1;
+      }
+
       success = true;
-      return res.status(200).json({ success, all_users });
+      return res.status(200).json({ success,sortedLeaderboard,currentUserIndex,userIndex });
     } else {
       return res.status(404).json("cannot fetch the users data");
     }
