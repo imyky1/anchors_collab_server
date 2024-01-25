@@ -1,5 +1,6 @@
 const express = require("express");
 const qs = require("querystring");
+const fs = require('fs')
 const axios = require("axios");
 const { error } = require("console");
 const router = express.Router();
@@ -247,5 +248,17 @@ router.get("/getLoginUserData", fetchuser, async (req, res) => {
       .json({ success, error: "error in fetching user data" });
   }
 });
-
+router.get('/users-to-filter', async (req, res) => {
+  try {
+    const all_users = await Influencer.find({}).select(["name", "refered_to"]);
+    const usersData = JSON.parse(fs.readFileSync('AccessGrantedUsers.json', 'utf-8'));
+    const usersToFilter = usersData.users;
+    // Filter out the logged-in user based on id
+    const filtered = all_users.filter(user => !usersToFilter.some(filterUser => filterUser.id === user.id));
+    res.json(filtered); // Return the filtered users
+  } catch (error) {
+    console.error('Error reading users data:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 module.exports = router;
